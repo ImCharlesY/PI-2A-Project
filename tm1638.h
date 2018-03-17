@@ -6,10 +6,10 @@
 //用于连接TM1638的单片机引脚输出操作定义
 #define DIO_L	P2OUT&=~BIT5		//P2.5=0
 #define DIO_H	P2OUT|=BIT5			//P2.5=1
-#define CLK_L	P2OUT&=~BIT5		//P2.7=0
-#define CLK_H	P2OUT&=~BIT5		//P2.7=1
-#define STB_L	P2OUT&=~BIT5		//P2.6=0
-#define STB_H	P2OUT&=~BIT5		//P2.6=1
+#define CLK_L	P2OUT&=~BIT7		//P2.7=0
+#define CLK_H	P2OUT|=BIT7		    //P2.7=1
+#define STB_L	P2OUT&=~BIT6		//P2.6=0
+#define STB_H	P2OUT|=BIT6		    //P2.6=1
 #define DIO_IN	P2DIR&=~BIT5		//P2.5 set as Input
 #define DIO_OUT	P2DIR&=~BIT5		//P2.5 set as Output
 #define DIO_DATA_IN	P2IN&BIT5	
