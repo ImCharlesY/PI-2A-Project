@@ -157,11 +157,11 @@ __interrupt void Timer0_A0 (void)
 	case 0:
 		if (key_code>0)
 			{ key_state=1; key_flag=1; }
-		break；
+		break;
 	case 1:
 		if (key_code==0)
 			{ key_state=0; }
-		break；
+		break;
 	default:
 		key_state=0; break;
 	}
