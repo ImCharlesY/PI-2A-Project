@@ -2,8 +2,6 @@
 //  main.c
 //  music_score
 //
-//  Created by 梁思齐 on 2018/3/24.
-//  Copyright © 2018年 梁思齐. All rights reserved.
 //
 #ifndef _MUSIC_SCORES_
 #define _MUSIC_SCORES_
@@ -21,7 +19,7 @@ extern const unsigned int tone1[][5]=
     {247,494,988,1967,3951}  //XI
 };
 
-//B大调
+//12平均律
 extern const unsigned int tone2[][5]=
 {
     {131,262,523,1046,2093}, //DO
