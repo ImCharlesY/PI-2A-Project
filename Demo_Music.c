@@ -2,7 +2,7 @@
 //音乐输出引脚：P2.1
 
 #include  <msp430g2553.h>
-#include "tm1638.h"		//tm1638.h与本文件放在同一路径下
+#include "tm1638.h"
 #include "Music_Scores.h"
 
 
@@ -32,7 +32,7 @@
 //播放速度等级总数
 #define SPEED_STATENUM 5
 //乐谱总数
-#define MUSIC_NUM 3
+#define MUSIC_NUM 4
 
 
 
@@ -65,6 +65,10 @@ unsigned char gain_state=1;
 /* 播放乐曲功能变量 */
 // 乐谱指针
 const unsigned int (*music_ptr)[2];
+// 频率表指针
+const unsigned int (*tone_ptr)[5];
+// 频率表解码，C大调取10，12平均律取100
+unsigned char tone_decode=10;
 
 // 播放中,当前的音频频率
 unsigned int audio_frequency;
@@ -81,7 +85,8 @@ unsigned char music_num=0;
 const double speed_percent[5]={4.0, 2.0, 1.0, 0.5, 0.25};
 
 //音调频率对照表
-extern const unsigned int tone[][5];
+extern const unsigned int tone1[][5];	// C大调
+extern const unsigned int tone2[][5];   // 12平均律
 
 //乐谱
 //荷塘月色-C大调版
@@ -90,7 +95,8 @@ extern const unsigned int music_data0[][2];
 extern const unsigned int music_data1[][2];
 //告白气球-C大调版
 extern const unsigned int music_data2[][2];
-
+//only my railgun-12平均律版
+extern const unsigned int music_data3[][2];
 
 
 ///////////////////////////////
@@ -158,8 +164,8 @@ void play_music()
 			if (music_ptr[audio_ptr][0]!=0) //判休止符
 			{
 				/*不是休止符*/
-				//根据音频计算定时器A1的初值,并启动定时器A1
-				audio_frequency=tone[music_ptr[audio_ptr][0]%10-1][music_ptr[audio_ptr][0]/10-2+tone_state-1];
+				audio_frequency=tone_ptr[music_ptr[audio_ptr][0]%tone_decode-1][music_ptr[audio_ptr][0]/tone_decode-2+tone_state-1];
+				
 				TA1CCR0 = 1000000/audio_frequency;	//设定周期
 				TA1CCR1 = TA1CCR0/2;                //设置占空比等于50%
 				TA1CTL = TASSEL_2 + MC_1 ;          // Source: SMCLK=1MHz, PWM mode,
@@ -287,6 +293,7 @@ void main(void)
 
 	// 初始乐谱
 	music_ptr=music_data0;
+	tone_ptr=tone1;
 	// 点亮对应二极管
 	// Wait for edition
 
@@ -328,9 +335,10 @@ void main(void)
 				if (++music_num >= MUSIC_NUM) music_num=0;
 				switch(music_num)
 				{
-				case 0: music_ptr=music_data0; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
-				case 1: music_ptr=music_data1; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
-				case 2: music_ptr=music_data2; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
+				case 0: music_ptr=music_data0; tone_ptr=tone1; tone_decode=10; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
+				case 1: music_ptr=music_data1; tone_ptr=tone1; tone_decode=10; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
+				case 2: music_ptr=music_data2; tone_ptr=tone1; tone_decode=10; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
+				case 3: music_ptr=music_data3; tone_ptr=tone2; tone_decode=100; audio_dura=0; audio_ptr=0; audio_frequency=0; break;
 				default: break;
 				}
 			default: break;
