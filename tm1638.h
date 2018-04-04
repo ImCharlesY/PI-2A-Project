@@ -133,7 +133,7 @@ void TM1638_RefreshDIGIandLED(unsigned char digit_buf[8],unsigned char pnt_buf,u
 	{
 		//数码管
 		buf[i<<1]=TM1638_DigiSegment(digit_buf[i]);
-		if ((pnt_buf&mask)) buf[i<<1]!=0x80;
+		if ((pnt_buf&mask)) buf[i<<1]|=0x80;
 		mask<<=1;
 
 		//指示灯

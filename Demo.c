@@ -1,11 +1,10 @@
 ///CPU时钟: DCO=8MHz, 定时器0、定时器1时钟: SMCLK=1MHz.
 //音乐输出引脚：P2.1
+//ADC输入引脚：P1.4
 
 #include  <msp430g2553.h>
 #include "tm1638.h"
 #include "Music_Scores.h"
-
-
 
 ///////////////////////////////
 //          Constant         //
@@ -52,7 +51,7 @@ unsigned char clock500ms_flag=0;
 unsigned char digi[8]={'F',' ','R',' ','G','-',' ',' '};
 //8位小数点,1on0off
 //注：板上数码位小数点从左到右序号排列为4/5/6/7/0/1/2/3
-unsigned char pnt=0x00;
+unsigned char pnt=0x40;
 //8个LED灯状态,每个灯4种颜色变化,0灭,1绿,2红,3橙
 //注：板上指示灯从左到右序号排列为7/6/5/4/3/2/1/0
 //对应元件LED(序号+1)
@@ -205,7 +204,7 @@ void auto_control()
         gain_control();
     }
 
-    ADC10CTL0 |= ENC + ADC10SC;
+    // ADC10CTL0 &=~ ENC;
 }
 
 
@@ -275,9 +274,11 @@ void Port_Init(void)
 //ADC初始化
 void ADC10_Init(void)
 {
-    ADC10CTL0 = SREF_1 + ADC10SHT_2 + REFON + REF2_5V+ ADC10ON;  //Vref+ =2.5V
+	ADC10CTL0 &=~ ENC;
+    ADC10CTL0 = SREF_1 + ADC10SHT_2 + REFON + REF2_5V+ ADC10ON;
     ADC10CTL1 = INCH_4 ;
     ADC10AE0 |= BIT4;
+    ADC10CTL0 |= ENC;
 }
 
 //TIMER0 initialize -
@@ -347,6 +348,20 @@ void main(void)
 
     while(1)
     {
+    	// 每0.5s更新一次ADC采样值
+    	if (clock500ms_flag)
+    	{
+    		clock500ms_flag=0;
+
+    		if (auto_ctrl)
+    		{
+    			int volt_display=volt*100;
+    			digi[0]='U';
+    			digi[1]=volt_display/100;
+    			digi[2]=volt_display%100/10;
+    			digi[3]=volt_display%10;
+    		}
+    	}
         if (key_flag==1)
         {
             key_flag=0;
@@ -405,8 +420,17 @@ void main(void)
             }
         }
         //更新数码管显示
-        digi[1]=tone_state-2;
-        digi[3]=speed_state;
+        if (!auto_ctrl)
+        {
+            digi[0]='F';
+        	digi[1]=tone_state-2;
+        	digi[2]='R';
+        	digi[3]=speed_state;
+        	pnt=0x40;
+        }
+        else
+            pnt=0x42;
+
         digi[6]=gain_state/10;
         digi[7]=gain_state%10;
 
