@@ -11,7 +11,7 @@
 #define STB_L	P2OUT&=~BIT6		//P2.6=0
 #define STB_H	P2OUT|=BIT6		    //P2.6=1
 #define DIO_IN	P2DIR&=~BIT5		//P2.5 set as Input
-#define DIO_OUT	P2DIR|=IT5		//P2.5 set as Output
+#define DIO_OUT	P2DIR|=BIT5		//P2.5 set as Output
 #define DIO_DATA_IN	P2IN&BIT5	
 
 //将显示数字或符号转换位共阴数码管的笔画值

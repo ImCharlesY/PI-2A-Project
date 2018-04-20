@@ -1,6 +1,7 @@
 ///CPU时钟: DCO=8MHz, 定时器0、定时器1时钟: SMCLK=1MHz.
 //音乐输出引脚：P2.1
 //ADC输入引脚：P1.4
+//红外检测引脚P1.7
 
 #include  <msp430g2553.h>
 #include "tm1638.h"
@@ -19,6 +20,9 @@
 #define CTL2_H P1OUT|=BIT2;
 #define CTL3_L P1OUT&=~BIT3;
 #define CTL3_H P1OUT|=BIT3;
+
+//红外遥感宏定义
+#define INFRARED  (P1IN&BIT7)
 
 //0.1s软件定时器溢出值,5个20ms
 #define V_T100ms 5
@@ -68,6 +72,9 @@ int sample;
 double volt;
 double Vmax=1.5;
 double Vmin=0.4;
+//红外遥感变量
+unsigned char infrared_ctrl=0;
+unsigned int infrared_state=0,infrared_pulsewidth=0,infrared_flag=0;
 
 /* 播放乐曲功能变量 */
 // 乐谱指针
@@ -207,6 +214,44 @@ void auto_control()
     // ADC10CTL0 &=~ ENC;
 }
 
+//红外遥感状态机检测函数
+// Timer0_A0 interrupt service routine
+void infrared()
+{
+	switch(infrared_state)
+	{
+	case 0:
+		if (INFRARED!=0)
+			if (++infrared_pulsewidth>=2)  infrared_state=1; 
+		else
+			infrared_pulsewidth=0;
+		break;
+	case 1:
+		if (INFRARED!=0)
+			if (++infrared_pulsewidth>=9)  infrared_state=2; 
+		else
+		{
+			infrared_flag=1;
+			infrared_pulsewidth=0;
+			infrared_state=0;
+		}
+		break;
+	case 2:
+		if (INFRARED==0)
+		{
+			infrared_flag=2;
+			infrared_pulsewidth=0;
+			infrared_state=0;
+		}
+		break;
+	default:
+		infrared_state=0;
+		infrared_pulsewidth=0;
+		break;
+	}
+	if (INFRARED==0) led[5]=2;
+	else led[5]=1;	
+}
 
 
 //////////////////////////////
@@ -247,6 +292,10 @@ __interrupt void Timer0_A0 (void)
     //自动增益中断程序
     if(auto_ctrl)
         auto_control();
+
+    //红外遥感控制程序
+    if(infrared_ctrl)
+    	infrared();
 }
 
 
@@ -269,6 +318,9 @@ void Port_Init(void)
 
     //P1.4作为检波电路输入
     P1DIR &=~ BIT4;
+
+    //P1.7作为红外检测电路输入
+    P1DIR &=~ BIT7;
 }
 
 //ADC初始化
@@ -362,6 +414,22 @@ void main(void)
     			digi[3]=volt_display%10;
     		}
     	}
+    	if (infrared_flag!=0)
+		{
+			switch(infrared_flag)
+			{
+			case 1:
+				if (++gain_state>GAIN_STATENUM) gain_state=1;
+				gain_control();
+			    break;
+			case 2:
+				if (--gain_state==0) gain_state=GAIN_STATENUM;
+				gain_control();
+				break;
+		    default: break;
+			}
+			infrared_flag=0;
+		}
         if (key_flag==1)
         {
             key_flag=0;
@@ -393,6 +461,10 @@ void main(void)
             case 5:
                 if (--speed_state==0) speed_state=SPEED_STATENUM;
                 break;
+            //红外遥感
+            case 13:
+            	infrared_ctrl^=1;
+            	break;
             //自动增益
             case 14:
                 auto_ctrl^=1;
