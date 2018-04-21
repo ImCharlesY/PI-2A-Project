@@ -215,20 +215,19 @@ void auto_control()
 }
 
 //红外遥感状态机检测函数
-// Timer0_A0 interrupt service routine
 void infrared()
 {
 	switch(infrared_state)
 	{
 	case 0:
 		if (INFRARED!=0)
-			if (++infrared_pulsewidth>=2)  infrared_state=1; 
+			{if (++infrared_pulsewidth>=2)  infrared_state=1;}
 		else
 			infrared_pulsewidth=0;
 		break;
 	case 1:
 		if (INFRARED!=0)
-			if (++infrared_pulsewidth>=9)  infrared_state=2; 
+			{if (++infrared_pulsewidth>=15)  infrared_state=2;} 
 		else
 		{
 			infrared_flag=1;
@@ -249,8 +248,8 @@ void infrared()
 		infrared_pulsewidth=0;
 		break;
 	}
-	if (INFRARED==0) led[5]=2;
-	else led[5]=1;	
+	if (INFRARED==0) led[5]=1;
+	else led[5]=2;
 }
 
 
@@ -509,5 +508,8 @@ void main(void)
         //更新二极管，指示功能
         led[7]=music_ctrl;
         led[6]=auto_ctrl;
+
+        if (!infrared_ctrl)
+        	led[5]=0;
     }
 }
