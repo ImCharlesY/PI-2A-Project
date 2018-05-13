@@ -15,7 +15,7 @@ plt.subplot(2,2,2)
 plt.stem(b)
 
 # sawtooth
-b=np.hstack([np.linspace(0,63,num=80),np.linspace(63,0,num=20)]).astype('int32')
+b=np.linspace(0,63,num=100).astype('int32')
 print(b.tolist())
 plt.subplot(2,2,3)
 plt.stem(b)

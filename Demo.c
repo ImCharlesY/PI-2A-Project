@@ -66,14 +66,14 @@ unsigned char music_ctrl=0, auto_ctrl=0, infrared_ctrl=0, wavegen_ctrl=0;
 
 
 /* 播放乐曲功能变量 */
-const unsigned int (*music_ptr)[2];		// 乐谱指针
-const unsigned int (*tone_ptr)[5];		// 频率表指针
-unsigned char tone_decode=10;			// 频率表解码，C大调取10，12平均律取100
-unsigned int audio_frequency;			// 播放中,当前的音频频率
-unsigned int audio_ptr=0,audio_dura=0;	// 辅助读谱指针、持续时间计数变量
-unsigned char tone_state=3;				// 音调等级,[1-5],初值为3
-unsigned char speed_state=3;			// 播放速度等级,[1-5],对应0.25,0.5，1.0，2,4.0,初值为3
-unsigned char music_num=0;				// 当前乐谱编号，[0-3]
+const unsigned int (*music_ptr)[2];     // 乐谱指针
+const unsigned int (*tone_ptr)[5];      // 频率表指针
+unsigned char tone_decode=10;           // 频率表解码，C大调取10，12平均律取100
+unsigned int audio_frequency;           // 播放中,当前的音频频率
+unsigned int audio_ptr=0,audio_dura=0;  // 辅助读谱指针、持续时间计数变量
+unsigned char tone_state=3;             // 音调等级,[1-5],初值为3
+unsigned char speed_state=3;            // 播放速度等级,[1-5],对应0.25,0.5，1.0，2,4.0,初值为3
+unsigned char music_num=0;              // 当前乐谱编号，[0-3]
 //播放速度对照表
 const double speed_percent[5]={4.0, 2.0, 1.0, 0.5, 0.25};
 //音调频率对照表及乐谱
@@ -86,9 +86,9 @@ extern const unsigned int music_data3[][2];
 
 
 /* 自动增益功能变量 */
-int sample;					// ADC模块单词转换值
-double volt_sample[10]={0}; // 滤波数组
-double volt;				// 当前电平值
+int sample;                 // ADC模块单词转换值
+double volt_sample[20]={0}; // 滤波数组
+double volt;                // 当前电平值
 
 
 /* 红外遥感功能变量 */
@@ -96,9 +96,12 @@ unsigned int infrared_state=0, infrared_pulsewidth=0, infrared_flag=0;
 
 
 /* 波形发生功能变量 */ 
-const unsigned char *wave_ptr;	// 增益序列指针
-unsigned char wave_type=0;		// 当前波形编号
-unsigned char wave_idx = 0;		// 辅助读表指针
+const unsigned char *wave_ptr;  // 增益序列指针
+unsigned char wave_type=0;      // 当前波形编号
+unsigned char wave_idx = 0;     // 辅助读表指针
+unsigned char wave_freq = 0;    // 波形频率等级
+unsigned char wave_mag = 0;     // 波形幅度等级
+const double wave_Magls[]={0.2,0.5,0.8,1};
 //波形发生增益序列
 extern const unsigned char squarewave[WAVELENGTH];
 extern const unsigned char triangwave[WAVELENGTH];
@@ -113,7 +116,13 @@ extern const unsigned char sincoswave[WAVELENGTH];
 //增益调节函数
 void gain_control(void)
 {
-    P1OUT = (!wavegen_ctrl && gain_state>15)?mask[15]:mask[gain_state];
+    if (wavegen_ctrl)
+    {
+        int gain_state_tmp = gain_state*wave_Magls[wave_mag];
+        P1OUT = mask[gain_state_tmp];
+    }
+    else
+        P1OUT = (gain_state>15)?mask[15]:mask[gain_state];
 }
 
 //按键操作在时钟中断服务程序种的状态转移处理程序
@@ -174,10 +183,10 @@ void auto_control()
     while (ADC10CTL1 & ADC10BUSY);
     sample = ADC10MEM;
     int i;
-    for (i=0; i<10; ++i) volt_sample[i] = volt_sample[i + 1];
-    volt = volt_sample[9] = sample*2.5/1024;
-	
-	for (i=0; i<10; ++i) volt = (volt<volt_sample[i])?volt_sample[i]:volt;
+    for (i=0; i<20; ++i) volt_sample[i] = volt_sample[i + 1];
+    volt = volt_sample[19] = sample*2.5/1024;
+    
+    for (i=0; i<20; ++i) volt = (volt<volt_sample[i])?volt_sample[i]:volt;
 
     if(volt > VMAX && gain_state >1)
     {
@@ -196,39 +205,39 @@ void auto_control()
 //红外遥感状态机检测函数
 void infrared()
 {
-	switch(infrared_state)
-	{
-	case 0:
-		if (INFRARED!=0)
-			{if (++infrared_pulsewidth>=PULSEWIDTHLOW)  infrared_state=1;}
-		else
-			infrared_pulsewidth=0;
-		break;
-	case 1:
-		if (INFRARED!=0)
-			{if (++infrared_pulsewidth>=PULSEWIDTHHIGH)  infrared_state=2;}
-		else
-		{
-			infrared_flag=1;
-			infrared_pulsewidth=0;
-			infrared_state=0;
-		}
-		break;
-	case 2:
-		if (INFRARED==0)
-		{
-			infrared_flag=2;
-			infrared_pulsewidth=0;
-			infrared_state=0;
-		}
-		break;
-	default:
-		infrared_state=0;
-		infrared_pulsewidth=0;
-		break;
-	}
-	if (INFRARED==0) led[5]=1;
-	else led[5]=2;
+    switch(infrared_state)
+    {
+    case 0:
+        if (INFRARED!=0)
+            {if (++infrared_pulsewidth>=PULSEWIDTHLOW)  infrared_state=1;}
+        else
+            infrared_pulsewidth=0;
+        break;
+    case 1:
+        if (INFRARED!=0)
+            {if (++infrared_pulsewidth>=PULSEWIDTHHIGH)  infrared_state=2;}
+        else
+        {
+            infrared_flag=1;
+            infrared_pulsewidth=0;
+            infrared_state=0;
+        }
+        break;
+    case 2:
+        if (INFRARED==0)
+        {
+            infrared_flag=2;
+            infrared_pulsewidth=0;
+            infrared_state=0;
+        }
+        break;
+    default:
+        infrared_state=0;
+        infrared_pulsewidth=0;
+        break;
+    }
+    if (INFRARED==0) led[5]=1;
+    else led[5]=2;
 }
 
 //波形发生
@@ -248,7 +257,11 @@ void RefreshDIGITandLEDS(void)
         digi[4]='G';
         digi[5]='E';
         digi[6]='N';
-        digi[7]=digi[0]=digi[1]=digi[2]=digi[3]='-';
+        digi[7]='-';
+        digi[0]='A';
+        digi[1]=wave_mag;
+        digi[2]='F';
+        digi[3]=wave_freq;
          //显示当前波形
         switch(wave_type)
         {
@@ -375,7 +388,7 @@ void Port_Init(void)
 //ADC初始化
 void ADC10_Init(void)
 {
-	ADC10CTL0 &=~ ENC;
+    ADC10CTL0 &=~ ENC;
     ADC10CTL0 = SREF_1 + ADC10SHT_2 + REFON + REF2_5V+ ADC10ON;
     ADC10CTL1 = INCH_4 ;
     ADC10AE0 |= BIT4;
@@ -444,22 +457,22 @@ void main(void)
 
     while(1)
     {
-    	if (infrared_flag!=0)
-		{
-			switch(infrared_flag)
-			{
-			case 1:
-				if (++gain_state>GAIN_STATENUM) gain_state=1;
-				gain_control();
-			    break;
-			case 2:
-				if (--gain_state==0) gain_state=GAIN_STATENUM;
-				gain_control();
-				break;
-		    default: break;
-			}
-			infrared_flag=0;
-		}
+        if (infrared_flag!=0)
+        {
+            switch(infrared_flag)
+            {
+            case 1:
+                if (++gain_state>GAIN_STATENUM) gain_state=1;
+                gain_control();
+                break;
+            case 2:
+                if (--gain_state==0) gain_state=GAIN_STATENUM;
+                gain_control();
+                break;
+            default: break;
+            }
+            infrared_flag=0;
+        }
         if (key_flag==1)
         {
             key_flag=0;
@@ -494,13 +507,13 @@ void main(void)
             //波形发生
             case 9:
                 wavegen_ctrl^=1;
-                if (!wavegen_ctrl) gain_state=1, TA0CCR0 = 5000;	// 如果是关闭波形发生，将增益调制0.1，并重置TA0定时器
+                if (!wavegen_ctrl) gain_state=1, TA0CCR0 = 5000;    // 如果是关闭波形发生，将增益调制0.1，并重置TA0定时器
                 else
                 {
-                    music_ctrl = auto_ctrl = infrared_ctrl = 0;		// 屏蔽其他三个功能
-                    TA0CCR0 = 2000;									// TA0执行2ms定时中断
-                    TA1CTL = 0;										// 停止音乐播放
-                }	
+                    music_ctrl = auto_ctrl = infrared_ctrl = 0;     // 屏蔽其他三个功能
+                    TA0CCR0 = (wave_freq+1)*1000;                   // TA0执行定时中断
+                    TA1CTL = 0;                                     // 停止音乐播放
+                }   
                 break;
             //波形切换
             case 10:
@@ -514,10 +527,22 @@ void main(void)
                 default: break;
                 }
                 break;
+            //波形发生幅度改变
+            case 11:
+                if (wavegen_ctrl && ++wave_mag >= 4) wave_mag=0;
+                break;
+            //波形发生频率改变
+            case 12:
+                if (wavegen_ctrl) 
+                {
+                    if (++wave_freq >= 6) wave_freq=0;
+                    TA0CCR0 = (wave_freq+1)*1000;
+                }
+                break;
             //红外遥感
             case 13:
-            	if (!wavegen_ctrl) infrared_ctrl^=1;
-            	break;
+                if (!wavegen_ctrl) infrared_ctrl^=1;
+                break;
             //自动增益
             case 14:
                 if (!wavegen_ctrl) auto_ctrl^=1;
